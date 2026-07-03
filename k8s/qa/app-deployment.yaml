@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-app
+  namespace: qa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs-app
+  template:
+    metadata:
+      labels:
+        app: nodejs-app
+    spec:
+      imagePullSecrets:
+        - name:  regcred
+      containers:
+      - name: nodejs-app
+        image: awaismansha/nodejs-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+          - name:  DB_HOST
+            value: mysql
+          - name:  DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name:  mysql_secret
+                key:  MYSQL_DATABASE
+          - name:  DB_USER
+            valueFrom:
+              secretKeyRef:
+                name:  mysql_secret
+                key:  MYSQL_USER
+          - name:  DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name:  mysql_secret
+                key:  MYSQL_PASSWORD
+          - name: MYSQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name:  mysql_secret
+                key:  MYSQL_PASSWORD
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name:  mysql_secret
+                key:  DATABASE_URL
