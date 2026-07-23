@@ -122,7 +122,7 @@ resource "aws_iam_role" "aws_lbc_role" {
 resource "aws_iam_policy" "aws_lbc_policy" {
   name        = "${var.cluster_name}-aws-lbc-policy"
   description = "IAM policy for AWS Load Balancer Controller"
-  policy      = file("./awslbcpolicy.json")
+  policy      = file("${path.module}/awslbcpolicy.json")
 
 }
 
@@ -161,35 +161,35 @@ resource "helm_release" "aws_load_balancer_controller" {
       name  = "serviceAccount.name"
       value = "aws-load-balancer-controller"
     }
-    ,{
-      name= "vpcId"
-      value= aws_vpc.main_vpc.id
+    , {
+      name  = "vpcId"
+      value = var.vpc_id
     }
   ]
 
 }
- #----------------------------------------------------------------
+#----------------------------------------------------------------
 data "aws_caller_identity" "current" {}
 
-locals{
+locals {
   environments = {
     qa = {
-      namespace = "qa"
+      namespace            = "qa"
       service_account_name = "eso-qa-sa"
-      secret_prefix = "qa"
+      secret_prefix        = "qa"
     }
 
     prod = {
-      namespace = "prod"
+      namespace            = "prod"
       service_account_name = "eso-prod-sa"
-      secret_prefix = "prod"
-      }
+      secret_prefix        = "prod"
+    }
   }
 }
 
 resource "aws_iam_policy" "external_secrets_policy" {
   for_each = local.environments
-  name        = "${var.cluster_name}-${each.key}-external-secrets-policy"
+  name     = "${var.cluster_name}-${each.key}-external-secrets-policy"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -207,19 +207,19 @@ resource "aws_iam_policy" "external_secrets_policy" {
 
 resource "aws_iam_role" "external_secrets_role" {
   for_each = local.environments
-  name = "${var.cluster_name}-${each.key}-external-secrets-role"
+  name     = "${var.cluster_name}-${each.key}-external-secrets-role"
 
   assume_role_policy = data.aws_iam_policy_document.aws_lbc_policy.json
 }
 
 resource "aws_iam_role_policy_attachment" "external_secrets_policy_attachment" {
-  for_each = local.environments
+  for_each   = local.environments
   role       = aws_iam_role.external_secrets_role[each.key].name
   policy_arn = aws_iam_policy.external_secrets_policy[each.key].arn
 }
 
 resource "aws_eks_pod_identity_association" "external_secrets_pod_identity_association" {
-  for_each = local.environments
+  for_each        = local.environments
   cluster_name    = aws_eks_cluster.main_cluster.name
   namespace       = each.value.namespace
   service_account = each.value.service_account_name
