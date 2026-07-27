@@ -1,0 +1,59 @@
+kind: DaemonSet
+
+serviceAccount:
+  create: true
+
+rbac:
+  create: true
+
+config:
+  service: |
+    [SERVICE]
+        Daemon Off
+        Flush 1
+        Log_Level info
+        Parsers_File /fluent-bit/etc/parsers.conf
+        HTTP_Server On
+        HTTP_Listen 0.0.0.0
+        HTTP_Port 2020
+        Health_Check On
+
+  inputs: |
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*.log
+        multiline.parser docker, cri
+        Tag kube.*
+        Mem_Buf_Limit 50MB
+        Skip_Long_Lines On
+
+  filters: |
+    [FILTER]
+        Name kubernetes
+        Match kube.*
+        Merge_Log On
+        Keep_Log Off
+        K8S-Logging.Parser On
+        K8S-Logging.Exclude On
+
+  outputs: |
+    [OUTPUT]
+        Name es
+        Match kube.*
+        Host logging-es-es-http.logging.svc.cluster.local
+        Port 9200
+        HTTP_User elastic
+        HTTP_Passwd ${ELASTIC_PASSWORD}
+        TLS On
+        TLS.Verify Off
+        Logstash_Format On
+        Logstash_Prefix kubernetes
+        Retry_Limit False
+        Suppress_Type_Name On
+
+env:
+  - name: ELASTIC_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: logging-es-es-elastic-user
+        key: elastic

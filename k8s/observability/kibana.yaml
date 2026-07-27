@@ -1,0 +1,23 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: logging-kb
+  namespace: logging
+spec:
+  version: 8.16.1
+  count: 1
+
+  elasticsearchRef:
+    name: logging-es
+
+  podTemplate:
+    spec:
+      containers:
+        - name: kibana
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+              cpu: 500m

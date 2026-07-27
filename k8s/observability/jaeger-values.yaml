@@ -1,0 +1,67 @@
+provisionDataStore:
+  cassandra: false
+  elasticsearch: false
+  kafka: false
+
+storage:
+  type: elasticsearch
+
+  elasticsearch:
+    scheme: https
+    host: logging-es-es-http.logging.svc.cluster.local
+    port: 9200
+
+    anonymous: false
+    user: elastic
+    usePassword: true
+
+    existingSecret: logging-es-es-elastic-user
+    existingSecretKey: elastic
+
+    tls:
+      enabled: true
+      secretName: logging-es-es-http-certs-public
+      mountPath: /es-tls/ca.crt
+      subPath: ca.crt
+      ca: /es-tls/ca.crt
+
+agent:
+  enabled: true
+
+collector:
+  enabled: true
+
+  service:
+    type: ClusterIP
+
+    otlp:
+      grpc:
+        name: otlp-grpc
+        port: 4317
+      http:
+        name: otlp-http
+        port: 4318
+
+query:
+  enabled: true
+
+  service:
+    type: ClusterIP
+    port: 80
+
+ingester:
+  enabled: false
+
+spark:
+  enabled: false
+
+esIndexCleaner:
+  enabled: true
+  numberOfDays: 7
+  schedule: "55 23 * * *"
+
+esRollover:
+  enabled: false
+
+hotrod:
+  enabled: false
