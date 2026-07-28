@@ -10,13 +10,13 @@ metadata:
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-5678-90ef-ghij-1234567890ab
 spec:
-  ingressclassName: alb
+  ingressClassName: alb
   rules:
     - host: myapp.example.com
       http:
         paths:
           - path: /
-            pathtype: Prefix
+            pathType: Prefix
             backend:
               service:
                 name: nodejs-service
