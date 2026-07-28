@@ -8,7 +8,7 @@ spec:
 
   source:
     repoURL: https://github.com/awaismansha-00/production-grade-devsecops.git
-    targetRevision: main
+    targetRevision: qa
     path: k8s/qa
 
   destination:

@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: monitoring-stack
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
 
@@ -13,11 +15,11 @@ spec:
       helm:
         releaseName: monitoring-stack
         valueFiles:
-          - $monitoring/kube-prometheus-stack-values.yaml
+          - $values/k8s/observability/values/kube-prometheus-stack-values.yaml
 
     - repoURL: https://github.com/awaismansha-00/production-grade-devsecops.git 
       targetRevision: main
-      ref: k8s/observability
+      ref: values
 
   destination:
     server: https://kubernetes.default.svc

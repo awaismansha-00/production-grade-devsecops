@@ -8,31 +8,44 @@ on:
       - k8s/prod/app-deployment.yaml
       - .github/workflows/prod-cd.yaml
 permissions:
-    contents: write
-    id-token: write
+  contents: write
+  id-token: write
 jobs:
-# -------------------------- PROMOTE IMAGE TO PRODUCTION --------------------------
+  # -------------------------- PROMOTE IMAGE TO PRODUCTION --------------------------
   promote-image-to-prod:
     name: Promote image to production
     runs-on: ubuntu-latest
 
-    env:
-      QA_IMAGE: awaismansha/nodejs-app:latest
-      PROD_LATEST_IMAGE: awaismansha/nodejs-app:prod-${{ github.sha }}
     steps:
-      - name: Login to DockerHub
-        uses: docker/login-action@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Pull image from QA
-        run: docker pull ${{ env.QA_IMAGE }}
-      - name: Tag image for production
-        run: docker tag ${{ env.QA_IMAGE }} ${{ env.PROD_LATEST_IMAGE }}
-      - name: Push image to production
-        run: docker push ${{ env.PROD_LATEST_IMAGE }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
 
-# -------------------------- UPDATE IMAGE IN PROD K8S MANIFEST --------------------------
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set ECR image names
+        id: image
+        run: |
+          echo "qa=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:latest" >> "$GITHUB_OUTPUT"
+          echo "prod=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:prod-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "QA_IMAGE=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:latest" >> "$GITHUB_ENV"
+          echo "PROD_LATEST_IMAGE=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:prod-${{ github.sha }}" >> "$GITHUB_ENV"
+
+      - name: Pull image from QA
+        run: docker pull "$QA_IMAGE"
+      - name: Tag image for production
+        run: docker tag "$QA_IMAGE" "$PROD_LATEST_IMAGE"
+      - name: Push image to production
+        run: docker push "$PROD_LATEST_IMAGE"
+
+    outputs:
+      prod_image: ${{ steps.image.outputs.prod }}
+
+  # -------------------------- UPDATE IMAGE IN PROD K8S MANIFEST --------------------------
   update-prod-k8s-manifest:
     name: Update image in prod K8S manifest
     runs-on: ubuntu-latest
@@ -47,13 +60,14 @@ jobs:
           ref: prod
       - name: Update image in prod K8S manifest
         run: |
-          sed -i "s|image: awaismansha/nodejs-app:.*|image: awaismansha/nodejs-app:prod-${{ github.sha }}|g" k8s/prod/app-deployment.yaml
+          IMAGE=${{ needs.promote-image-to-prod.outputs.prod_image }}
+          sed -i "s|image: .*nodejs-app:.*|image: ${IMAGE}|g" k8s/prod/app-deployment.yaml
       - name: Show updated prod K8S manifest
         run: cat k8s/prod/app-deployment.yaml
       - name: Commit and push changes
         run: |
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add k8s/prod/app-deployment.yaml
-            git commit -m "Update prod K8S manifest with new image tag prod-${{ github.sha }} [skip ci]"
-            git push origin prod
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/prod/app-deployment.yaml
+          git commit -m "Update prod K8S manifest with new image tag prod-${{ github.sha }} [skip ci]"
+          git push origin prod

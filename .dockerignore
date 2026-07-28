@@ -1,0 +1,9 @@
+.git
+.github
+node_modules
+client/node_modules
+server/node_modules
+terraform
+k8s
+*.md
+*.log
