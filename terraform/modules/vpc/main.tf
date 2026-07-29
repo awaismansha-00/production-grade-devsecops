@@ -28,7 +28,7 @@ resource "aws_route_table" "public_route_table" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block = "0.0.0/0"
+    cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main_igw.id
   }
 
@@ -59,10 +59,10 @@ resource "aws_subnet" "private_subnet" {
 
 resource "aws_route_table" "private_route_table" {
   vpc_id = aws_vpc.main.id
-  count  = length(var.private_subnet_cidrs)
+  count  = var.enable_nat_gateway ? length(var.private_subnet_cidrs) : 0
 
   route {
-    cidr_block     = "0.0.0/0"
+    cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.main_nat[count.index].id
   }
   tags = {
@@ -72,7 +72,7 @@ resource "aws_route_table" "private_route_table" {
 }
 
 resource "aws_route_table_association" "private" {
-  count          = length(var.private_subnet_cidrs)
+  count          = var.enable_nat_gateway ? length(var.private_subnet_cidrs) : 0
   subnet_id      = aws_subnet.private_subnet[count.index].id
   route_table_id = aws_route_table.private_route_table[count.index].id
 }
@@ -86,7 +86,7 @@ resource "aws_internet_gateway" "main_igw" {
 }
 
 resource "aws_eip" "nat_eip" {
-  count  = length(var.public_subnet_cidrs)
+  count  = var.enable_nat_gateway ? length(var.public_subnet_cidrs) : 0
   domain = "vpc"
 
   tags = {
@@ -95,7 +95,7 @@ resource "aws_eip" "nat_eip" {
 }
 
 resource "aws_nat_gateway" "main_nat" {
-  count         = length(var.private_subnet_cidrs)
+  count         = var.enable_nat_gateway ? length(var.private_subnet_cidrs) : 0
   allocation_id = aws_eip.nat_eip[count.index].id
   subnet_id     = aws_subnet.public_subnet[count.index].id
 

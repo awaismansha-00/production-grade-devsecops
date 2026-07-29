@@ -15,7 +15,7 @@ variable "private_subnet_ids" {
 
 variable "allowed_security_group_ids" {
   description = "Security groups allowed to connect to RDS on port 3306"
-  type        = list(string)
+  type        = map(string)
 }
 
 variable "master_username" {

@@ -22,3 +22,9 @@ variable "cluster_name" {
   type        = string
   description = "Name of the EKS cluster"
 }
+
+variable "enable_nat_gateway" {
+  type        = bool
+  description = "Create NAT gateways and private subnet default routes"
+  default     = false
+}

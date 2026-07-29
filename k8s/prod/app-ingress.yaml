@@ -6,13 +6,16 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-5678-90ef-ghij-1234567890ab
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    # For custom domain + TLS, replace these values with real ones and uncomment them.
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-2:123456789012:certificate/abcd1234-5678-90ef-ghij-1234567890ab
 spec:
   ingressClassName: alb
   rules:
-    - host: myapp.example.com
+    - # For custom domain + TLS, replace this with your real host and uncomment it.
+      # host: myapp.example.com
       http:
         paths:
           - path: /

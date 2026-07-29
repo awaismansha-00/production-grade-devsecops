@@ -39,6 +39,11 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
   version    = "1.7.2"
+  wait       = true
+  timeout    = 600
+
+  atomic          = true
+  cleanup_on_fail = true
 
   set = [{
     name  = "clusterName"
@@ -57,9 +62,13 @@ resource "helm_release" "aws_load_balancer_controller" {
       name  = "vpcId"
       value = var.vpc_id
     }
+    , {
+      name  = "region"
+      value = var.region
+    }
   ]
 
-  depends_on = [aws_iam_role_policy_attachment.aws_lbc_policy_attachment]
+  depends_on = [aws_eks_pod_identity_association.aws_lbc_pod_identity_association]
 
 }
 
@@ -71,7 +80,7 @@ resource "aws_eks_pod_identity_association" "aws_lbc_pod_identity_association" {
   role_arn        = aws_iam_role.aws_lbc_role.arn
 
   depends_on = [
-    helm_release.aws_load_balancer_controller
+    aws_iam_role_policy_attachment.aws_lbc_policy_attachment
   ]
 }
 # ------------------------------------------------------------
@@ -109,6 +118,12 @@ resource "helm_release" "external_secrets" {
   chart            = "external-secrets"
   namespace        = "external-secrets"
   create_namespace = true
+  wait             = true
+  timeout          = 600
+
+  atomic          = true
+  cleanup_on_fail = true
+
   set = [{
     name  = "installCRDs"
     value = "true"
@@ -123,6 +138,10 @@ resource "helm_release" "external_secrets" {
     }
   ]
 
+  depends_on = [
+    aws_eks_pod_identity_association.external_secrets_pod_identity_association,
+    helm_release.aws_load_balancer_controller
+  ]
 }
 
 resource "aws_eks_pod_identity_association" "external_secrets_pod_identity_association" {
@@ -132,15 +151,23 @@ resource "aws_eks_pod_identity_association" "external_secrets_pod_identity_assoc
   role_arn        = aws_iam_role.external_secrets_role.arn
 
   depends_on = [
-    helm_release.external_secrets,
     aws_iam_role_policy_attachment.external_secrets_policy_attachment
   ]
 }
 
 # ------------------------------------------------------------
 resource "aws_eks_addon" "ebs_csi" {
-  cluster_name = var.cluster_name
-  addon_name   = "aws-ebs-csi-driver"
+  cluster_name                = var.cluster_name
+  addon_name                  = "aws-ebs-csi-driver"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [aws_eks_pod_identity_association.ebs_csi]
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+  }
 }
 
 resource "aws_eks_pod_identity_association" "ebs_csi" {
@@ -150,7 +177,6 @@ resource "aws_eks_pod_identity_association" "ebs_csi" {
   role_arn        = aws_iam_role.ebs_csi_role.arn
 
   depends_on = [
-    aws_eks_addon.ebs_csi,
     aws_iam_role_policy_attachment.ebs_csi_policy
   ]
 }
@@ -183,5 +209,30 @@ resource "kubernetes_storage_class_v1" "ebs_sc" {
     fsType = "ext4"
   }
 
-  depends_on = [aws_eks_pod_identity_association.ebs_csi]
+  depends_on = [aws_eks_addon.ebs_csi]
+}
+
+moved {
+  from = aws_iam_role.ebs_csi_role[0]
+  to   = aws_iam_role.ebs_csi_role
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.ebs_csi_policy[0]
+  to   = aws_iam_role_policy_attachment.ebs_csi_policy
+}
+
+moved {
+  from = aws_eks_pod_identity_association.ebs_csi[0]
+  to   = aws_eks_pod_identity_association.ebs_csi
+}
+
+moved {
+  from = aws_eks_addon.ebs_csi[0]
+  to   = aws_eks_addon.ebs_csi
+}
+
+moved {
+  from = kubernetes_storage_class_v1.ebs_sc[0]
+  to   = kubernetes_storage_class_v1.ebs_sc
 }

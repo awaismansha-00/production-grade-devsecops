@@ -1,16 +1,35 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+  }
+}
+
 provider "aws" {
   region = "eu-west-2"
 }
 
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
 resource "aws_s3_bucket" "terraform_state_bucket" {
-  bucket = "production-grade-devsecops-state-bucket"
+  bucket = "production-grade-devsecops-state-${random_id.bucket_suffix.hex}"
+
   lifecycle {
     prevent_destroy = true
   }
 
   tags = {
-    Name        = "MyBucket"
-    Environment = "Dev"
+    Name        = "production-grade-devsecops-state"
+    Environment = "Prod"
   }
 }
 

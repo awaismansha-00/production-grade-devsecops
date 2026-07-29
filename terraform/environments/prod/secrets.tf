@@ -35,3 +35,16 @@ resource "aws_secretsmanager_secret_version" "prod_mysql" {
 
   depends_on = [module.mysql_bootstrap]
 }
+
+resource "aws_secretsmanager_secret" "grafana_admin" {
+  name = "monitoring/grafana_secret"
+}
+
+resource "aws_secretsmanager_secret_version" "grafana_admin" {
+  secret_id = aws_secretsmanager_secret.grafana_admin.id
+
+  secret_string = jsonencode({
+    GRAFANA_USERNAME = var.grafana_admin_username
+    GRAFANA_PASSWORD = var.grafana_admin_password
+  })
+}

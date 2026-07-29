@@ -22,7 +22,6 @@ terraform {
   }
 
   backend "s3" {
-    bucket       = "production-grade-devsecops-state-bucket"
     key          = "terraform.tfstate"
     region       = "eu-west-2"
     use_lockfile = true
@@ -73,6 +72,7 @@ module "vpc" {
   availability_zones   = var.availability_zones
   public_subnet_cidrs  = var.public_subnet_cidrs
   private_subnet_cidrs = var.private_subnet_cidrs
+  enable_nat_gateway   = var.enable_nat_gateway
 }
 
 module "eks" {
@@ -80,7 +80,7 @@ module "eks" {
   cluster_name    = var.cluster_name
   cluster_version = var.cluster_version
   vpc_id          = module.vpc.vpc_id
-  subnet_ids      = module.vpc.private_subnet_ids
+  subnet_ids      = var.eks_nodes_in_public_subnets ? module.vpc.public_subnet_ids : module.vpc.private_subnet_ids
   node_groups     = var.node_groups
   region          = var.region
 }
@@ -115,7 +115,9 @@ module "ssm_tunnel_host" {
 
   name_prefix = var.cluster_name
   vpc_id      = module.vpc.vpc_id
-  subnet_id   = module.vpc.private_subnet_ids[0]
+  subnet_id   = var.enable_nat_gateway ? module.vpc.private_subnet_ids[0] : module.vpc.public_subnet_ids[0]
+
+  associate_public_ip_address = !var.enable_nat_gateway
 
   depends_on = [module.vpc]
 }
@@ -126,10 +128,10 @@ module "rds_mysql" {
   name_prefix        = var.cluster_name
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
-  allowed_security_group_ids = [
-    module.eks.cluster_security_group_id,
-    module.ssm_tunnel_host.security_group_id
-  ]
+  allowed_security_group_ids = {
+    eks             = module.eks.cluster_security_group_id
+    ssm_tunnel_host = module.ssm_tunnel_host.security_group_id
+  }
   master_username = var.rds_master_username
   master_password = var.rds_master_password
 

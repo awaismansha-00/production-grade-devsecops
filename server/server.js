@@ -1,15 +1,85 @@
+require('./tracing');
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('./config/db');
 const cors = require('cors');
 const path = require('path');
+const promClient = require('prom-client');
+const { context, trace } = require('@opentelemetry/api');
 
 const app = express();
 const port = process.env.PORT || 5000; // Use an environment variable for the port
+const metricsRegister = new promClient.Registry();
+
+promClient.collectDefaultMetrics({
+  register: metricsRegister,
+});
+
+const httpRequestCounter = new promClient.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code'],
+  registers: [metricsRegister],
+});
+
+const httpRequestDuration = new promClient.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'HTTP request duration in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+  registers: [metricsRegister],
+});
+
+const getRouteLabel = (req) => {
+  if (req.route && req.route.path) {
+    return req.baseUrl ? `${req.baseUrl}${req.route.path}` : req.route.path;
+  }
+  if (req.path.startsWith('/api/users/')) {
+    return '/api/users/:id';
+  }
+  return req.path;
+};
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+
+  res.on('finish', () => {
+    const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+    const route = getRouteLabel(req);
+    const statusCode = String(res.statusCode);
+    const activeSpan = trace.getSpan(context.active());
+    const spanContext = activeSpan && activeSpan.spanContext();
+    const traceId = spanContext && spanContext.traceId;
+
+    httpRequestCounter.inc({
+      method: req.method,
+      route,
+      status_code: statusCode,
+    });
+    httpRequestDuration.observe({
+      method: req.method,
+      route,
+      status_code: statusCode,
+    }, durationSeconds);
+
+    console.log(JSON.stringify({
+      level: res.statusCode >= 500 ? 'error' : 'info',
+      message: 'http_request',
+      method: req.method,
+      path: req.originalUrl,
+      route,
+      status_code: res.statusCode,
+      duration_ms: Math.round(durationSeconds * 1000),
+      trace_id: traceId,
+    }));
+  });
+
+  next();
+});
 
 const createUsersTable = `
   CREATE TABLE IF NOT EXISTS users (
@@ -29,6 +99,11 @@ db.query(createUsersTable, (err) => {
 });
 
 // API Routes
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', metricsRegister.contentType);
+  res.end(await metricsRegister.metrics());
+});
+
 app.get('/api/users', (req, res) => {
   db.query('SELECT * FROM users', (err, results) => {
     if (err) {
@@ -81,4 +156,3 @@ app.get('*', (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
-

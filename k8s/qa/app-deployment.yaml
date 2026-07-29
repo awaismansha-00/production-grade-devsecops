@@ -44,4 +44,9 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: DATABASE_URL
-
+            - name: OTEL_SERVICE_NAME
+              value: nodejs-app-qa
+            - name: OTEL_TRACES_EXPORTER
+              value: otlp
+            - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+              value: http://jaeger-collector.logging.svc.cluster.local:4318/v1/traces

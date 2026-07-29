@@ -174,8 +174,9 @@ Before deploying, make sure you have:
 - Helm installed.
 - Docker installed.
 - A SonarQube project and token if using the QA quality gate.
-- An ACM certificate for the application ingress host.
+- An ACM certificate only if enabling HTTPS/custom-domain ingress.
 - Required DB credentials available through a secret-safe Terraform workflow.
+- Grafana admin credentials available through the same Terraform variable workflow.
 - A private SSM tunnel host or a runner inside the VPC for MySQL bootstrap.
 
 Required GitHub repository variables:
@@ -204,6 +205,7 @@ cd terraform/backend
 terraform init
 terraform plan
 terraform apply
+BACKEND_BUCKET="$(terraform output -raw s3_bucket_name)"
 ```
 
 ### 2. Provision AWS Infrastructure
@@ -214,9 +216,15 @@ First apply without MySQL bootstrap:
 
 ```bash
 cd terraform/environments/prod
-terraform init
-terraform plan -var='enable_mysql_bootstrap=false'
-terraform apply -var='enable_mysql_bootstrap=false'
+terraform init -backend-config="bucket=${BACKEND_BUCKET}"
+terraform plan \
+  -var='enable_mysql_bootstrap=false' \
+  -var='enable_nat_gateway=false' \
+  -var='eks_nodes_in_public_subnets=true'
+terraform apply \
+  -var='enable_mysql_bootstrap=false' \
+  -var='enable_nat_gateway=false' \
+  -var='eks_nodes_in_public_subnets=true'
 ```
 
 Then start an SSM tunnel to private RDS:
@@ -267,7 +275,20 @@ Argo CD is bootstrapped manually, then the root app owns the child applications:
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl patch configmap argocd-cmd-params-cm \
+  -n argocd \
+  --type merge \
+  -p '{"data":{"server.insecure":"true"}}'
+kubectl rollout restart deployment argocd-server -n argocd
+kubectl rollout status deployment argocd-server -n argocd
+kubectl apply -f k8s/argocd/argocd-ingress.yaml
 kubectl apply -f k8s/argocd/root-app.yaml
+```
+
+Use the Argo CD ALB DNS name for the UI:
+
+```bash
+kubectl get ingress -n argocd
 ```
 
 The QA Argo app tracks the `qa` branch. The production Argo app tracks the `prod` branch. Shared platform and observability apps stay on `main`.

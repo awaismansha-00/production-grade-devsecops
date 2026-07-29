@@ -1,12 +1,16 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: app-ingress
-  namespace: qa
+  name: argocd-server-ingress
+  namespace: argocd
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/success-codes: '200-399'
     # For custom domain + TLS, replace these values with real ones and uncomment them.
     # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     # alb.ingress.kubernetes.io/ssl-redirect: '443'
@@ -15,13 +19,13 @@ spec:
   ingressClassName: alb
   rules:
     - # For custom domain + TLS, replace this with your real host and uncomment it.
-      # host: myapp.example.com
+      # host: argocd.example.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: nodejs-service
+                name: argocd-server
                 port:
-                  number: 5000
+                  number: 80

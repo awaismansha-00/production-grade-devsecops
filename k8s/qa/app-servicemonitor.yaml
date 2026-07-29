@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nodejs-app
+  namespace: qa
+  labels:
+    app: nodejs-app
+spec:
+  selector:
+    matchLabels:
+      app: nodejs-app
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

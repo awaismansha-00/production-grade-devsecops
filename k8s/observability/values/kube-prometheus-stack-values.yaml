@@ -1,15 +1,16 @@
 grafana:
   ingress:
-    enabled: true
-    ingressClassName: alb
-    annotations:
-      alb.ingress.kubernetes.io/scheme: internet-facing
-      alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-      alb.ingress.kubernetes.io/ssl-redirect: "443"
-      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-2:<ACCOUNT_ID>:certificate/<CERTIFICATE_ID>
-    hosts:
-      - grafana.<YOUR_DOMAIN>
+    enabled: false
+    # For public Grafana with custom domain + TLS, replace these values with real ones and enable ingress.
+    # ingressClassName: alb
+    # annotations:
+    #   alb.ingress.kubernetes.io/scheme: internet-facing
+    #   alb.ingress.kubernetes.io/target-type: ip
+    #   alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    #   alb.ingress.kubernetes.io/ssl-redirect: "443"
+    #   alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-2:<ACCOUNT_ID>:certificate/<CERTIFICATE_ID>
+    # hosts:
+    #   - grafana.<YOUR_DOMAIN>
     path: /
     pathType: Prefix
 
@@ -24,6 +25,8 @@ grafana:
 prometheus:
   prometheusSpec:
     retention: 7d
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
 
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false

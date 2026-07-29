@@ -25,7 +25,7 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_security_group_rule" "mysql_ingress" {
-  for_each = toset(var.allowed_security_group_ids)
+  for_each = var.allowed_security_group_ids
 
   type                     = "ingress"
   from_port                = 3306
