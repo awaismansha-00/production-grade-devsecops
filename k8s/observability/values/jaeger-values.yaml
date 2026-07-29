@@ -8,7 +8,7 @@ storage:
 
   elasticsearch:
     scheme: https
-    host: logging-es-es-http.logging.svc.cluster.local
+    host: logging-es-es-http.logging.svc
     port: 9200
 
     anonymous: false

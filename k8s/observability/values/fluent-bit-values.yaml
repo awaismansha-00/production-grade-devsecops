@@ -40,7 +40,7 @@ config:
     [OUTPUT]
         Name es
         Match kube.*
-        Host logging-es-es-http.logging.svc.cluster.local
+        Host logging-es-es-http.logging.svc
         Port 9200
         HTTP_User elastic
         HTTP_Passwd ${ELASTIC_PASSWORD}
