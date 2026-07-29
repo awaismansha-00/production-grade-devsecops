@@ -179,6 +179,8 @@ Before deploying, make sure you have:
 - Grafana admin credentials available through the same Terraform variable workflow.
 - A private SSM tunnel host or a runner inside the VPC for MySQL bootstrap.
 
+RDS MySQL password reminder: use 8-41 printable ASCII characters, and avoid `/`, `@`, double quote (`"`), spaces, and single quote (`'`). A simple safe pattern is `StrongRDS-2026!ChangeMe`.
+
 Required GitHub repository variables:
 
 ```text

@@ -43,13 +43,13 @@ variable "eks_nodes_in_public_subnets" {
 variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
-  default     = "opentelemetry-eks-cluster"
+  default     = "production-grade-devsecops-cluster"
 }
 
 variable "cluster_version" {
   description = "Version of the EKS cluster"
   type        = string
-  default     = "1.30"
+  default     = "1.36"
 }
 
 variable "node_groups" {
@@ -69,7 +69,7 @@ variable "node_groups" {
       instance_types = ["t3.medium"]
       capacity_type  = "ON_DEMAND"
       scaling_config = {
-        desired_size = 2
+        desired_size = 3
         min_size     = 1
         max_size     = 4
       }
