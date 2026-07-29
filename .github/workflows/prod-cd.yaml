@@ -17,6 +17,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout QA branch
+        uses: actions/checkout@v4
+        with:
+          ref: qa
+          path: qa-branch
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -27,20 +33,31 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set ECR image names
+      - name: Read tested QA image and set prod image
         id: image
         run: |
-          echo "qa=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:latest" >> "$GITHUB_OUTPUT"
-          echo "prod=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:prod-${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          echo "QA_IMAGE=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:latest" >> "$GITHUB_ENV"
-          echo "PROD_LATEST_IMAGE=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:prod-${{ github.sha }}" >> "$GITHUB_ENV"
+          QA_IMAGE=$(grep -E 'image: .*nodejs-app:' qa-branch/k8s/qa/app-deployment.yaml | head -n 1 | awk '{print $2}')
+          if [ -z "$QA_IMAGE" ]; then
+            echo "No nodejs-app image found in QA manifest"
+            exit 1
+          fi
+          QA_TAG="${QA_IMAGE##*:}"
+          if [ "$QA_TAG" = "latest" ]; then
+            echo "QA manifest still points at mutable latest; refusing production promotion"
+            exit 1
+          fi
+          PROD_IMAGE="${QA_IMAGE%:*}:prod-${QA_TAG}"
+          echo "qa=${QA_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "prod=${PROD_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "QA_IMAGE=${QA_IMAGE}" >> "$GITHUB_ENV"
+          echo "PROD_IMAGE=${PROD_IMAGE}" >> "$GITHUB_ENV"
 
       - name: Pull image from QA
         run: docker pull "$QA_IMAGE"
       - name: Tag image for production
-        run: docker tag "$QA_IMAGE" "$PROD_LATEST_IMAGE"
+        run: docker tag "$QA_IMAGE" "$PROD_IMAGE"
       - name: Push image to production
-        run: docker push "$PROD_LATEST_IMAGE"
+        run: docker push "$PROD_IMAGE"
 
     outputs:
       prod_image: ${{ steps.image.outputs.prod }}
@@ -55,7 +72,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: prod
       - name: Update image in prod K8S manifest
@@ -69,5 +86,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add k8s/prod/app-deployment.yaml
-          git commit -m "Update prod K8S manifest with new image tag prod-${{ github.sha }} [skip ci]"
+          git commit -m "Promote tested QA image to prod [skip ci]"
           git push origin prod

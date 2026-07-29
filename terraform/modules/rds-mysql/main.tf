@@ -9,7 +9,7 @@ resource "aws_db_subnet_group" "this" {
 
 resource "aws_security_group" "this" {
   name        = "${var.name_prefix}-mysql-rds-sg"
-  description = "Allow MySQL access from EKS"
+  description = "Allow MySQL access from approved private security groups"
   vpc_id      = var.vpc_id
 
   egress {
@@ -24,8 +24,9 @@ resource "aws_security_group" "this" {
   }
 }
 
-resource "aws_security_group_rule" "mysql_from_eks" {
-  for_each = toset(var.allowed_security_group_id)
+resource "aws_security_group_rule" "mysql_ingress" {
+  for_each = toset(var.allowed_security_group_ids)
+
   type                     = "ingress"
   from_port                = 3306
   to_port                  = 3306

@@ -22,11 +22,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "production-grade-devsecops-state-bucket"
-    key            = "terraform.tfstate"
-    region         = "eu-west-2"
-    dynamodb_table = "terraform-state-lock"
-    encrypt        = true
+    bucket       = "production-grade-devsecops-state-bucket"
+    key          = "terraform.tfstate"
+    region       = "eu-west-2"
+    use_lockfile = true
+    encrypt      = true
   }
 }
 
@@ -96,10 +96,9 @@ module "ecr" {
 module "eks_addons" {
   source = "../../modules/eks-addons"
 
-  cluster_name   = module.eks.cluster_name
-  region         = var.region
-  vpc_id         = module.vpc.vpc_id
-  aws_account_id = data.aws_caller_identity.current.account_id
+  cluster_name = module.eks.cluster_name
+  region       = var.region
+  vpc_id       = module.vpc.vpc_id
 
   external_secret_arns = [
     "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:qa/*",
@@ -124,18 +123,21 @@ module "ssm_tunnel_host" {
 module "rds_mysql" {
   source = "../../modules/rds-mysql"
 
-  name_prefix               = var.cluster_name
-  vpc_id                    = module.vpc.vpc_id
-  private_subnet_ids        = module.vpc.private_subnet_ids
-  allowed_security_group_id = [module.eks.cluster_security_group_id, module.ssm_tunnel_host.security_group_id]
-  master_username           = var.rds_master_username
-  master_password           = var.rds_master_password
+  name_prefix        = var.cluster_name
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+  allowed_security_group_ids = [
+    module.eks.cluster_security_group_id,
+    module.ssm_tunnel_host.security_group_id
+  ]
+  master_username = var.rds_master_username
+  master_password = var.rds_master_password
 
   depends_on = [module.eks]
 }
 
 module "mysql_bootstrap" {
-  count = var.enable_mysql_bootstrap ? 1 : 0
+  count  = var.enable_mysql_bootstrap ? 1 : 0
   source = "../../modules/mysql-bootstrap"
 
   qa_db_name       = var.qa_db_name

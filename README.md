@@ -16,13 +16,13 @@ GitHub Actions
   -> Argo CD syncs branch-specific Kubernetes manifests
 
 Terraform
-  -> S3 and DynamoDB backend for remote state
+  -> S3 backend with native lockfile state locking
   -> reusable VPC and EKS modules
   -> reusable ECR module
   -> reusable EKS add-ons module
   -> reusable RDS MySQL and MySQL bootstrap modules
-  -> planned private SSM tunnel host for local DB bootstrap access
-  -> planned GitHub OIDC role for ECR access
+  -> private SSM tunnel host for local DB bootstrap access
+  -> GitHub OIDC role for ECR access
 
 Kubernetes
   -> qa and prod namespaces
@@ -58,7 +58,7 @@ flowchart TB
   end
 
   subgraph IaC["Terraform"]
-    Backend[S3 State and DynamoDB Locking]
+    Backend[S3 State and Native Locking]
     VPC[VPC Module]
     EKS[EKS Module]
     Addons[EKS Add-ons Module]

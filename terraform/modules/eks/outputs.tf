@@ -1,11 +1,11 @@
 output "cluster_endpoint" {
   description = "EKS cluster endpoint"
-  value = aws_eks_cluster.main_cluster.endpoint
+  value       = aws_eks_cluster.main_cluster.endpoint
 }
 
 output "cluster_name" {
   description = "EKS cluster name"
-  value = aws_eks_cluster.main_cluster.name
+  value       = aws_eks_cluster.main_cluster.name
 }
 
 output "cluster_security_group_id" {

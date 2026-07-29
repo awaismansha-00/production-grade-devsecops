@@ -13,11 +13,6 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "aws_account_id" {
-  description = "AWS account ID used in IAM policy ARNs"
-  type        = string
-}
-
 variable "external_secret_arns" {
   description = "Secrets Manager ARNs External Secrets Operator can read"
   type        = list(string)

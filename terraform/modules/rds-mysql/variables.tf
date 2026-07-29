@@ -13,8 +13,8 @@ variable "private_subnet_ids" {
   type        = list(string)
 }
 
-variable "allowed_security_group_id" {
-  description = "Security group allowed to connect to RDS on port 3306"
+variable "allowed_security_group_ids" {
+  description = "Security groups allowed to connect to RDS on port 3306"
   type        = list(string)
 }
 

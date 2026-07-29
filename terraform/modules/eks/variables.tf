@@ -33,6 +33,6 @@ variable "node_groups" {
 
 variable "region" {
   description = "AWS region"
-  type = string
+  type        = string
 
 }

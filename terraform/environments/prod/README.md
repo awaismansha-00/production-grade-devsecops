@@ -15,8 +15,8 @@ The production environment wires these modules:
 ../../modules/eks-addons
 ../../modules/rds-mysql
 ../../modules/mysql-bootstrap
-../../modules/ssm-tunnel-host             # planned remaining module
-../../modules/github-actions-ecr-role     # planned remaining module
+../../modules/ssm-tunnel-host
+../../modules/github-actions-ecr-role
 ```
 
 ## Responsibilities

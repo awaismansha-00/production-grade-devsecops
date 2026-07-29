@@ -1,5 +1,3 @@
-data "aws_caller_identity" "current" {}
-
 data "aws_iam_policy_document" "pod_identity_assume_role" {
   statement {
     effect = "Allow"
@@ -130,7 +128,7 @@ resource "helm_release" "external_secrets" {
 resource "aws_eks_pod_identity_association" "external_secrets_pod_identity_association" {
   cluster_name    = var.cluster_name
   namespace       = "external-secrets"
-  service_account = "external-secrets"
+  service_account = var.external_secrets_service_account_name
   role_arn        = aws_iam_role.external_secrets_role.arn
 
   depends_on = [

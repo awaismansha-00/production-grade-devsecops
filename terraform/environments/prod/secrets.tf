@@ -3,6 +3,7 @@ resource "aws_secretsmanager_secret" "qa_mysql" {
 }
 
 resource "aws_secretsmanager_secret_version" "qa_mysql" {
+  count     = var.enable_mysql_bootstrap ? 1 : 0
   secret_id = aws_secretsmanager_secret.qa_mysql.id
 
   secret_string = jsonencode({
@@ -21,6 +22,7 @@ resource "aws_secretsmanager_secret" "prod_mysql" {
 }
 
 resource "aws_secretsmanager_secret_version" "prod_mysql" {
+  count     = var.enable_mysql_bootstrap ? 1 : 0
   secret_id = aws_secretsmanager_secret.prod_mysql.id
 
   secret_string = jsonencode({
