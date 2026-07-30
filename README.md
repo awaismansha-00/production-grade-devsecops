@@ -56,77 +56,7 @@ The same Express server also serves the compiled React frontend from `client/pub
 
 ### Infrastructure Diagram
 
-```mermaid
-flowchart TB
-  Dev[Developer] --> GitHub[GitHub Repository]
-
-  subgraph CI["GitHub Actions"]
-    GitHub --> QA[QA pipeline on qa branch]
-    QA --> Scan[Secret, IaC, dependency, image, and quality scans]
-    Scan --> Build[Build Docker image]
-    Build --> ECR[Amazon ECR]
-    QA --> UpdateQA[Update k8s/qa image tag]
-
-    GitHub --> Prod[Production promotion on prod branch]
-    Prod --> Promote[Retag tested QA image]
-    Promote --> ECR
-    Prod --> UpdateProd[Update k8s/prod image tag]
-  end
-
-  subgraph IaC["Terraform"]
-    Backend[S3 remote state with native lockfile]
-    VPC[VPC public/private subnets]
-    EKS[EKS cluster and managed node group]
-    Addons[EKS add-ons]
-    RDS[RDS MySQL]
-    Tunnel[SSM tunnel host]
-    Secrets[AWS Secrets Manager]
-    OIDC[GitHub OIDC ECR role]
-    Backend --> VPC
-    VPC --> EKS
-    VPC --> RDS
-    EKS --> Addons
-    Tunnel --> RDS
-    RDS --> Secrets
-    ECR --> OIDC
-  end
-
-  subgraph GitOps["Argo CD App Of Apps"]
-    Root[root-app.yaml]
-    Apps[k8s/argocd/applications]
-    Root --> Apps
-    Apps --> QAApp[QA app from qa branch]
-    Apps --> ProdApp[Prod app from prod branch]
-    Apps --> Obs[Monitoring, logging, tracing]
-  end
-
-  subgraph Cluster["Amazon EKS"]
-    ESO[External Secrets Operator]
-    ALB[AWS Load Balancer Controller]
-    QAWorkload[qa/nodejs-app]
-    ProdWorkload[prod/nodejs-app]
-    Prom[Prometheus and Grafana]
-    Logs[Fluent Bit, Elasticsearch, Kibana]
-    Traces[Jaeger]
-    ALB --> QAWorkload
-    ALB --> ProdWorkload
-    ESO --> QAWorkload
-    ESO --> ProdWorkload
-    QAWorkload --> Prom
-    ProdWorkload --> Prom
-    QAWorkload --> Logs
-    ProdWorkload --> Logs
-    QAWorkload --> Traces
-    ProdWorkload --> Traces
-  end
-
-  GitHub --> Root
-  ECR --> QAWorkload
-  ECR --> ProdWorkload
-  Secrets --> ESO
-  QAWorkload --> RDS
-  ProdWorkload --> RDS
-```
+![Production Grade DevSecOps architecture diagram](./architecture%20diagram.png)
 
 ### GitOps Branch Model
 
