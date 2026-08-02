@@ -1237,5 +1237,3 @@ App container port:    5000
 Local app port:        5000
 Local MySQL port:      3307
 ```
-
-If your AWS account or region does not support the configured EKS version, update `cluster_version` in `terraform/environments/prod/variables.tf` before applying.
